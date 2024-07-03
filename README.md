@@ -24,7 +24,7 @@ This Ad Detection System is designed to automatically detect specific advertisem
 - NumPy
 - Requests
 - Flask
-- Dlib
+- Dlib - For mac os, just use pip install dlib, however, for windows use the wheel setup "dlib-19.24.1-cp311-cp311-win_amd64.whl"
 
 ### Tutorial Steps
 
