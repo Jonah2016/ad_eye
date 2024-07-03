@@ -1,0 +1,34 @@
+<!--Normal navbar for larger screens-->
+<nav id="navbar" class="">
+      <div class="nav-wrapper">
+            <!-- Navbar Logo -->
+            <div class="logo">
+                <a href="/"><img height="40" src="{{ url_for('static', filename='assets/images/deepeye_logo.png') }}"></a>
+            </div>
+            <!-- Navbar Links -->
+            <ul id="menu">
+                <li><a class="{{ home_active }}" href="/">Home</a></li>
+                <li><a class="{{ query_active }}" href="/recorded">Recorded</a></li>
+                <li><a class="{{ live_active }}" href="/live">Live</a></li>
+                <li><a class="{{ report_active }}" href="/reports">Report</a></li>
+                <li><a class="{{ status_active }}" href="/statuses">Job Status</a></li>
+                <li><a class="{{ settings_active }}" href="/settings">Settings</a></li>
+            </ul>
+      </div>
+</nav>
+<!-- Mobile Menu Icon -->
+<div class="menuIcon">
+  <span class="icon icon-bars"></span>
+  <span class="icon icon-bars overlay"></span>
+</div>
+<!--Mobile menu overlay-->
+<div class="overlay-menu">
+  <ul id="mobile-menu">
+      <li><a class="{{ home_active }}" href="/">Home</a></li>
+      <li><a class="{{ query_active }}" href="/recorded">Recorded</a></li>
+      <li><a class="{{ live_active }}" href="/live">Live</a></li>
+      <li><a class="{{ report_active }}" href="/reports">Report</a></li>
+      <li><a class="{{ status_active }}" href="/statuses">Job Status</a></li>
+      <li><a class="{{ settings_active }}" href="/settings">Settings</a></li>
+    </ul>
+</div>
