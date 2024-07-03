@@ -1,13 +1,10 @@
-import face_recognition
 import asyncio
 import time
 
 from _decimal import Decimal
 
 from app.modules.live.live_ads_recognition import process_live_ad_detection
-from app.modules.live.live_facial_recognition import process_live_facial_recognition
 from app.modules.recorded.recorded_ads_recognition import process_ad_detection
-from app.modules.recorded.recorded_facial_recognition import process_facial_recognition
 from app.utils.async_image_processor import async_find_image, async_get_and_encode_images
 from app.utils.db_conn import update_current_recognition_job
 from app.utils.sync_image_processor import sync_find_image, sync_get_and_encode_images
@@ -29,55 +26,8 @@ async def recorded_detect_ad_detection_with_restart(parameters):
         await asyncio.sleep(1)  # Wait for a second before restarting
 
 
-async def recorded_detect_facial_recognition_with_restart(parameters):
-    while True:
-        try:
-            result = await recorded_detect_facial_recognition(parameters)
-            return result  # Return the loop if the process completes successfully
-            # break  # Exit the loop if the process completes successfully
-        except OSError as e:
-            if e.errno == 10038:
-                print(f"OSError encountered: {e}. Restarting detection process.")
-            else:
-                print(f"Unhandled OSError: {e}. Restarting detection process.")
-        except Exception as e:
-            print(f"Unhandled exception: {e}. Restarting detection process.")
-        await asyncio.sleep(1)  # Wait for a second before restarting
-
 
 # ================= Recorded detection process =================
-async def recorded_detect_facial_recognition(parameters):
-    job_type = parameters['job_type']
-    job_threshold = parameters['job_threshold']
-    job_max_sample_size = parameters['job_max_sample_size']
-    job_max_good_matches = parameters['job_max_good_matches']
-    test_image_path = parameters['test_image_path']
-    test_target_image = parameters['test_target_image']
-    recorded_video_dir = parameters['recorded_video_dir']
-    job_start_date = parameters['job_start_date']
-    job_end_date = parameters['job_end_date']
-    job_start_time = parameters['job_start_time']
-    job_end_time = parameters['job_end_time']
-    job_queue_id = parameters['job_queue_id']
-    job_name = parameters['job_name']
-    job_id = parameters['job_id']
-    video_server = parameters['video_server']
-
-    target_encodings = face_recognition.face_encodings(test_target_image)
-
-    if not target_encodings:
-        return "No faces detected in the target image."
-
-    target_encoding = target_encodings[0]
-    await async_get_and_encode_images(test_image_path)
-    resp = await process_facial_recognition(job_id, job_type, job_threshold, job_max_sample_size,
-                                            job_max_good_matches, test_image_path, test_target_image,
-                                            recorded_video_dir, job_start_date, job_end_date,
-                                            job_start_time, job_end_time, job_queue_id, job_name,
-                                            target_encoding, video_server)
-    return resp
-
-
 async def recorded_detect_ad_detection(parameters):
     job_type = parameters['job_type']
     job_threshold = parameters['job_threshold']
@@ -156,10 +106,6 @@ async def recorded_detect_process(detect_parameters):
                 print("RECORDED - ADS DETECTION PROCESS =======")
                 update_current_recognition_job({"job_status": "processing"}, job_id)
                 tasks.append(recorded_detect_ad_detection_with_restart(parameters))
-            elif job_type == "facial":
-                print("RECORDED - FACE RECOGNITION PROCESS =======")
-                update_current_recognition_job({"job_status": "processing"}, job_id)
-                tasks.append(recorded_detect_facial_recognition_with_restart(parameters))
             else:
                 print("Please select the recognition type!")
                 return {"code": 404, "msg": "Please select the recognition type!"}
@@ -189,37 +135,6 @@ async def recorded_detect_process(detect_parameters):
 
 
 # ================= Live detection process =================
-def live_detect_facial_recognition(parameters):
-    job_type = parameters['job_type']
-    job_threshold = parameters['job_threshold']
-    test_image_path = parameters['test_image_path']
-    test_target_image = parameters['test_target_image']
-    recorded_video_dir = parameters['recorded_video_dir']
-    job_start_date = parameters['job_start_date']
-    job_end_date = parameters['job_end_date']
-    job_start_time = parameters['job_start_time']
-    job_end_time = parameters['job_end_time']
-    job_queue_id = parameters['job_queue_id']
-    job_name = parameters['job_name']
-    job_id = parameters['job_id']
-    video_server = parameters['video_server']
-    channel_name = parameters['channel_name']
-    channel_id = parameters['channel_id']
-
-    target_encodings = face_recognition.face_encodings(test_target_image)
-
-    if not target_encodings:
-        return "No faces detected in the target image."
-
-    target_encoding = target_encodings[0]
-    sync_get_and_encode_images(test_image_path)
-    resp = process_live_facial_recognition(job_id, job_type, job_threshold, test_image_path, test_target_image,
-                                           recorded_video_dir, job_start_date, job_end_date,
-                                           job_start_time, job_end_time, job_queue_id, job_name,
-                                           target_encoding, video_server, channel_name, channel_id)
-    return resp
-
-
 def live_detect_ad_detection(parameters):
     job_type = parameters['job_type']
     job_threshold = parameters['job_threshold']
@@ -289,9 +204,6 @@ def live_detect_process(detect_parameters):
     if job_type == "ads":
         print("LIVE - ADS DETECTION PROCESS =======")
         results = live_detect_ad_detection(parameters)
-    elif job_type == "facial":
-        print("LIVE - FACE RECOGNITION PROCESS =======")
-        results = live_detect_facial_recognition(parameters)
     else:
         print("Please select the recognition type!")
         return {"code": 404, "msg": "Please select the recognition type!"}
