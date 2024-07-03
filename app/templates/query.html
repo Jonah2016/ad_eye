@@ -1,0 +1,213 @@
+{% include 'layout/header.html' %}
+
+{% set query_active = 'active' %}
+
+{% include 'layout/navbar.html' %}
+
+{% block content %}
+
+<div class="row mt-5">
+    <!-- Top part query operations-->
+    <div class="container col-12">
+        <!-- header-->
+        <div class="d-flex align-items-center justify-content-start bg-danger">
+            <div class="main-wrapper py-3 px-4">
+                <h3>DeepEye Query - Recorded</h3>
+            </div>
+        </div>
+        <!-- query form-->
+        <div class="main-wrapper d-flex align-items-center justify-content-center">
+            <div class="row">
+                <div class="col-12 col-md-6 col-sm-12">
+                    <form class="mb-5 mt-4" enctype = "multipart/form-data"  method = "post">
+                        {{ form.hidden_tag() }}
+
+                        {% for error in form.photo.errors %}
+                        <span class="text-danger errorMsgText">{{ error }}</span>
+                        {% endfor %}
+
+                        <div class="row px-4 mb-1">
+                            <div class="col-12 mb-2">
+                                <label>{{ form.channelsData.label }} <i class="bi bi-asterisk text-danger"></i></label>
+                                {{ form.channelsData(multiple="multiple", class="", id="channelSelect") }}
+                            </div>
+                            <div class="col-12 col-lg-12 col-md-12 col-sm-12 mb-2">
+                                <label>{{ form.photo.label }} <i class="bi bi-asterisk text-danger"></i></label>
+                                {{ form.photo(multiple="multiple", class="", onchange="previewMultipleImages(this, 'displayImg')") }}
+                            </div>
+                            <div class="col-12 col-lg-12 col-md-12 col-sm-12 mb-2">
+                                <label>{{ form.detectionName.label }} <i class="bi bi-asterisk text-danger"></i></label>
+                                {{ form.detectionName(class="") }}
+                            </div>
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-2">
+                                <label>{{ form.detectionType.label }} <i class="bi bi-asterisk text-danger"></i></label>
+                                {{ form.detectionType(class="detectType") }}
+                            </div>
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-2">
+                                <label>
+                                    {{ form.detectionThreshold.label }}
+                                    <i class="bi bi-asterisk text-danger"></i>
+                                    <small class="text-info thresholdInfo">(0 - 0.8)</small>
+                                </label>
+                                {{ form.detectionThreshold(class="thresholdValue") }}
+                            </div>
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-2">
+                                <label>{{ form.maxSampleSize.label }}</label>
+                                {{ form.maxSampleSize(class="") }}
+                            </div>
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-2">
+                                <label>{{ form.maxStrongMatches.label }}</label>
+                                {{ form.maxStrongMatches(class="") }}
+                            </div>
+                        </div>
+                        <div class="row px-4 mb-1">
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-1">
+                                <label>{{ form.dateFrom.label }} <i class="bi bi-asterisk text-danger"></i></label>
+                                {{ form.dateFrom(class="") }}
+                            </div>
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-1">
+                                <label>{{ form.dateTo.label }} <i class="bi bi-asterisk text-danger"></i></label>
+                                {{ form.dateTo(class="") }}
+                            </div>
+                        </div>
+                        <div class="row px-4 mb-3">
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-2">
+                                <label>{{ form.timeFrom.label }}</label>
+                                {{ form.timeFrom(class="") }}
+                            </div>
+                            <div class="col-12 col-lg-6 col-md-6 col-sm-12 mb-2">
+                                <label>{{ form.timeTo.label }}</label>
+                                {{ form.timeTo(class="") }}
+                            </div>
+                        </div>
+                        <div class="row px-4">
+                            <div class="mx-1">
+                                {{ form.submit(class="btn btn-block btn-lg btn-success uploadButton") }}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-12 col-md-6 col-sm-12 px-4">
+                    <div class="border p-2 mb-2 mt-5 displayImg overflowy_auto" id="queuedJobsList" style="min-height:34.8rem; max-height:34.8rem;" >
+                        <!-- display uploaded images here -->
+                        {% for item in queued %}
+                            {% set counter = 0 %}
+                            <!-- <img src="{{ item.frm_target_image_path }}" class="mb-3" height="200px" width="100%" alt="">-->
+                            <ol class="queued__jobs" style="--length: 10" role="list">
+                                <li style="--i: {{ item.job_queue_id }}">
+                                    <h5><span title="Queue number">{{ item.job_queue_id }}</span>{{ item.job_name }}</h5>
+                                    <h6 class="job__items"><span>Job Type:</span> {{ (item.job_type).upper() }}</h6>
+                                    <h6 class="job__items"><span>Test Image:</span> {{ item.test_image_path }}</h6>
+                                    <h6 class="job__items"><span>Date Range:</span> {{ item.job_start_date }} - {{ item.job_end_date }}</h6>
+                                    <h6 class="job__items"><span>Time Range:</span> {{ item.job_start_time }} - {{ item.job_end_time }}</h6>
+                                    <h6 class="job__items"><span>Channel Name:</span> {{ item.channel_name }}</h6>
+
+                                    <div>
+                                        <button class="innerBtn btn btn-sm btn-success my-2"
+                                            onClick="clickActionBtnQuery(this)"
+                                            data-job_id="{{item.job_id}}"
+                                            data-job_type="{{item.job_type}}"
+                                            data-job_mode="{{item.job_mode}}"
+                                            data-action="restart"
+                                        >Start Job</button>
+                                        <button class="innerBtn btn btn-sm btn-danger my-2 mx-1"
+                                            onClick="clickActionBtnQuery(this)"
+                                            data-job_id="{{item.job_id}}"
+                                            data-job_type="{{item.job_type}}"
+                                            data-job_mode="{{item.job_mode}}"
+                                            data-action="delete"
+                                        >Delete Job</button>
+                                    </div>
+                                </li>
+                            </ol>
+                            <hr class="text-light" />
+                        {% endfor %}
+                    </div>
+                    <div class="mt-4 mx-1" align="right">
+                        <button type="button" id="startDetectionBtn" class="btn btn-block btn-lg btn-primary">
+                            Run All Queued Processes</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<script>
+    $(document).ready(function(){
+         var multipleCancelButton = new Choices('#channelSelect', {
+            removeItemButton: true,
+            maxItemCount:5,
+            searchResultLimit:5,
+            renderChoiceLimit:5
+          });
+     });
+</script>
+
+<!-- Scripts executing table button commands -->
+<script>
+    {% include 'actions.js' %}
+</script>
+
+<!-- Specific Scripts -->
+<script>
+    $(document).ready(function() {
+        async function runDetection(form_data)
+        {
+            await fetch('/process_recorded_uploads', {
+                method: 'POST',
+                body: form_data,
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data) {
+                    success_operation(data);
+                    $('#startDetectionBtn').prop("disabled",false);
+                    $('.innerBtn').prop("disabled",false);
+                }
+            })
+            .catch(err => {
+                error_operation("E0x0000000JxDETECTION_PROCESS: SYSTEM_ERROR_OCCURRED")
+                $('#startDetectionBtn').prop("disabled",false);
+                $('.innerBtn').prop("disabled",false);
+            })
+        }
+
+        // On submit add_blog form
+        $(document).on('click', '#startDetectionBtn', function(event) {
+            event.preventDefault();
+
+            $('#startDetectionBtn').prop("disabled",true);
+            $('.innerBtn').prop("disabled",true);
+
+            let formData = new FormData();
+            formData.append('action', 'process_recorded_uploads');
+            // parse form for action
+            runDetection(formData);
+        });
+
+    });
+
+    $(document).on('change', '.detectType', function(event) {
+        event.preventDefault();
+        let ctrl = $(this);
+        let dataValue  = ctrl.find(':selected').val();
+
+        if (dataValue == "ads") {
+            $('.thresholdValue').val(30);
+            $('.thresholdInfo').text("(10% - 50%)");
+            $('.thresholdValue').attr('min', 10);
+            $('.thresholdValue').attr('max', 50);
+        }
+        else {
+            $('.thresholdValue').val(0.6);
+            $('.thresholdInfo').text("(0 - 0.8))")
+            $('.thresholdValue').attr('min', 0.2);
+            $('.thresholdValue').attr('max', 0.8);
+        }
+    });
+</script>
+
+{% include 'layout/footer.html' %}

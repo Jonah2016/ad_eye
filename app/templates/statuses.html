@@ -1,0 +1,253 @@
+{% include 'layout/header.html' %}
+
+{% set status_active = 'active' %}
+
+{% include 'layout/navbar.html' %}
+
+{% block content %}
+
+<div class="row mt-5">
+    <!-- Top part query operations-->
+    <div class="container col-12">
+        <!-- header-->
+        <div class="d-flex align-items-center justify-content-start bg-danger">
+            <div class="main-wrapper py-3 px-4">
+                <h3>DeepEye Query - Statuses</h3>
+            </div>
+        </div>
+        <!-- query form-->
+        <div class="main-wrapper d-flex align-items-center justify-content-center">
+
+            <!-- Bottom part results -->
+            <div class="container col-12 mb-4">
+
+                <div class="d-flex row align-items-center justify-content-between mx-2 mt-5" >
+                    <div class="col-12 col-md-12 col-lg-12 mb-3 mb-lg-0 md-md-2 mb-sm-3">
+                        <button class="btn btn-md btn-info" id="stopRefresh">Stop Auto-Refresh</button>
+                    </div>
+                </div>
+
+                <div class="container py-2">
+                    <hr style="color:#babcc4;" />
+                </div>
+                <!-- results display-->
+                <div class="mt-1 d-flex align-items-center justify-content-center">
+                    <div class="container">
+                        <table id="queryResultsTable" class="table overflowy_auto table-padded table-bordered text-left" cellspacing="0" width="100%">
+                            <thead class="bgLightBlue">
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Job Name</th>
+                                    <th>Channel</th>
+                                    <th>Queue ID</th>
+                                    <th>Priority</th>
+                                    <th>Mode</th>
+                                    <th>Job Status</th>
+                                    <th>Matches</th>
+                                    <th>Active Status</th>
+                                    <th>Created at</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Query results will be displayed here -->
+                            </tbody>
+                        </table>
+                        <div class="row queryResultsDetails">
+                            <!-- Query results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+<!-- Scripts executing button commands -->
+<script>
+    {% include 'actions.js' %}
+</script>
+
+
+<!--// Script loading and populating table data logic-->
+<script>
+    // Select Query ========================================
+    document.addEventListener("DOMContentLoaded", function() {
+         // Get the select field element// Initialize DataTable with empty data and with options
+        const dataTable = $('#queryResultsTable').DataTable({
+            // Enable responsive design
+            responsive: true,
+            // Add custom styling classes
+            "columnDefs": [
+                { "className": "dt-center", "targets": "_all" } // Center align all columns
+            ],
+            // Add buttons for exporting data
+            dom: 'lfrtip',
+        });
+
+        // Fetch jobs based on the job_type
+        async function fetchSpecificJobsData() {
+            try {
+                const response = await fetch(`recognition_jobs`);
+                const data = await response.json();
+                drawJobsStatusTable(data);
+            } catch (error) {
+                error_operation(error);
+            }
+        }
+
+        // Visibility API support check
+
+        let timerId; // Timer ID for tracking jobs requests
+        if (document.visibilityState === undefined) {
+            console.warn('Visibility API not supported');
+            // Fallback to option 1 or implement a different approach
+        } else {
+            // Start the timer on page load
+            fetchSpecificJobsData(); // Call initially
+            timerId = setInterval(fetchSpecificJobsData, 5000); // Execute every 5 seconds
+
+            // Handle visibility changes
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            function handleVisibilityChange() {
+                if (document.visibilityState === 'visible') {
+                    clearInterval(timerId);
+                    timerId = setInterval(fetchSpecificJobsData, 1000);
+                } else {
+                    clearInterval(timerId);
+                    console.log('Tab is hidden, pausing auto-refresh.');
+                }
+            }
+        }
+
+        // Button click handler to stop the timer (Option 1)
+        const stopButton = document.getElementById('stopRefresh');
+        stopButton.addEventListener('click', () => {
+            clearInterval(timerId);
+            success_operation('Auto-refresh has been stopped.');
+        });
+
+        // Draw the table
+        function drawJobsStatusTable(recognitionJobs) {
+            dataTable.clear(); // Clear existing data
+            // Add new data
+            let queryFrameTime = '';
+            if (recognitionJobs) {
+                for (const item of recognitionJobs) {
+                    const job_video_dir = item.rec_video_file;
+                    const job_test_image = (item.test_image_path) ? item.test_image_path.replace(/^app\//, "") : "";
+                    const job_active_status = (item.job_status == 0) ? "pending" : "active"
+                    const job_id = item.job_id;
+                    const job_type = item.job_type;
+                    const job_name = item.job_name;
+                    const job_queue_id = item.job_queue_id;
+                    const job_priority = item.job_priority;
+                    const job_mode = item.job_mode;
+                    const job_status = item.job_status;
+                    const job_samples_matched = item.job_samples_matched;
+                    const job_created = item.created;
+                    const job_start_date = item.job_start_date;
+                    const job_end_date = item.job_end_date;
+                    const job_start_time = item.job_start_time;
+                    const job_end_time = item.job_end_time;
+                    const job_channel_name = item.channel_name;
+                    const job_channel_id = item.channel_id;
+
+                    if(job_status == "done") { bdgColor = "success" }
+                    else if(job_status == "queued") { bdgColor = "secondary" }
+                    else if(job_status == "matched") { bdgColor = "primary" }
+                    else if(job_status == "processing") { bdgColor = "info" }
+                    else if(job_status == "no-matches") { bdgColor = "warning" }
+                    else if(job_status == "stopped") { bdgColor = "warning" }
+                    else if(job_status == "failed") { bdgColor = "danger" }
+                    else { bdgColor = "secondary" }
+
+                    // Get frame thumbnail
+                    const imageHtml = `<button
+                                            data-vThumb="${job_test_image}" data-vUrl="${job_video_dir}"
+                                            class="displayImage">
+                                            <img src="${job_test_image}" alt="Image" width="80px" height="60px">
+                                        <button>`;
+
+                    // Action buttons
+                    const deleteBtn = `<button
+                                            onClick="clickActionBtnQuery(this)"
+                                            data-job_id="${job_id}"
+                                            data-job_type="${job_type}"
+                                            data-job_mode="${job_mode}"
+                                            data-action="delete"
+                                            style="--bs-btn-font-size: .65rem;"
+                                            class="btn btn-sm btn-danger m-1 deleteJob">
+                                            Deleted
+                                        <button>`;
+                    const restartBtn = `<button
+                                            onClick="clickActionBtnQuery(this)"
+                                            data-job_id="${job_id}"
+                                            data-job_type="${job_type}"
+                                            data-job_mode="${job_mode}"
+                                            data-action="restart"
+                                            style="--bs-btn-font-size: .65rem;"
+                                            class="btn btn-sm btn-success m-1 restartJob">
+                                            Restart
+                                        <button>`;
+                    const stopBtn = `<button
+                                            onClick="clickActionBtnQuery(this)"
+                                            data-job_id="${job_id}"
+                                            data-job_type="${job_type}"
+                                            data-action="stop"
+                                            style="--bs-btn-font-size: .65rem;"
+                                            class="btn btn-sm btn-warning m-1 stopJob">
+                                            Stop
+                                        <button>`;
+                    const reportBtn = `<button
+                                            onClick="clickActionBtnQuery(this)"
+                                            data-job_id="${job_id}"
+                                            data-job_type="${job_type}"
+                                            data-action="reports"
+                                            style="--bs-btn-font-size: .65rem;"
+                                            class="btn btn-sm btn-primary m-1 viewJobReport">
+                                            Report
+                                        <button>`;
+
+                    let btnArray;
+                    if (job_status == 'queued') {
+                        btnArray = `<div>${deleteBtn}</div> <div>${restartBtn}</div>`
+                    }
+                    else if (job_status == 'processing' || job_status == 'matched') {
+                        btnArray = `<div>${stopBtn}</div> <div>${restartBtn}</div>`
+                    }
+                    else if (job_status == 'failed') {
+                        btnArray = `<div>${restartBtn}</div> <div>${deleteBtn}</div>`
+                    }
+                    else if (job_status == 'stopped') {
+                        btnArray = `<div>${deleteBtn}</div> <div>${restartBtn}</div>`
+                    }
+                    else if (job_status == 'done') {
+                        btnArray = `<div>${reportBtn}</div>`
+                    }
+                    else {
+                        btnArray = `<div>${reportBtn}</div>`
+                    }
+
+                    const jobStatusBadge = `<span class="badge bg-${bdgColor} px-2" >${job_status}</span>`;
+
+                    // Add new row to table
+                    dataTable.row.add([imageHtml, job_name, job_channel_name, job_queue_id,
+                     job_priority, job_mode, jobStatusBadge, job_samples_matched, job_active_status, job_created, btnArray]);
+                }
+            }
+            // Redraw DataTable
+            dataTable.draw();
+        }
+    });
+</script>
+
+
+{% include 'layout/footer.html' %}

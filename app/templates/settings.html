@@ -1,0 +1,20 @@
+{% include 'layout/header.html' %}
+
+{% set settings_active = 'active' %}
+
+{% include 'layout/navbar.html' %}
+
+    {% block content %}
+    <div class="row mt-5">
+        <div class="container">
+            <!-- header-->
+            <div class="d-flex align-items-center justify-content-start bg-danger">
+                <div class="main-wrapper py-3 px-4">
+                    <h3>DeepEye Query - Settings</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+{% include 'layout/footer.html' %}

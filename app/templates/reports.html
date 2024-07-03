@@ -1,0 +1,312 @@
+{% include 'layout/header.html' %}
+
+{% set report_active = 'active' %}
+
+{% include 'layout/navbar.html' %}
+
+{% block content %}
+
+<div class="row mt-5">
+    <!-- Top part query operations-->
+    <div class="container col-12">
+        <!-- header-->
+        <div class="d-flex align-items-center justify-content-start bg-danger">
+            <div class="main-wrapper py-3 px-4">
+                <h3>DeepEye Query - Reports</h3>
+            </div>
+        </div>
+        <!-- query form-->
+        <div class="main-wrapper d-flex align-items-center justify-content-center">
+
+            <!-- Bottom part results -->
+            <div class="container col-12 mb-4">
+
+                <div class="row">
+                    <div class="col-12 col-lg-6 col-md-6 col-sm-12 mt-4 px-4">
+                        {{ form.queriedData(class="", id="querySelect") }}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12 col-md-6 col-sm-12 px-4">
+                        <div class="border p-2 mb-2 mt-4" >
+                            <img src="" id="selectedQueryImage" height="260px" width="100%" alt="">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-sm-12 px-4">
+                        <div class="border p-2 mb-2 mt-4" >
+                            <div class="myWrapper">
+                                <div id="videoHolder">
+                                    <video id="queryVideo" controls poster="" >
+                                        <source class="mp4" id="videoSource" src="" type="video/mpeg">
+                                    </video>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="container py-2">
+                    <hr style="color:#babcc4;" />
+                </div>
+
+                <div class="row" id="jobDetails">
+
+                </div>
+
+                <div class="container py-2">
+                    <hr style="color:#babcc4;" />
+                </div>
+                <!-- results display-->
+                <div class="mt-4 d-flex align-items-center justify-content-center printInvDetails">
+                    <div class="container mt-2">
+                        <table id="queryResultsTable" class="table overflowy_auto table-padded table-bordered text-left" cellspacing="0" width="100%">
+                            <thead class="bgLightBlue">
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Channel</th>
+                                    <th>Confidence (%)</th>
+                                    <th>Frame Time</th>
+                                    <th>Video Length</th>
+                                    <th>Video Date</th>
+                                    <th>Searched Video File</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Query results will be displayed here -->
+                            </tbody>
+                        </table>
+                        <div class="row queryResultsDetails">
+                            <!-- Query results will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/printThis/1.15.0/printThis.min.js"></script>
+
+<script>
+    // Print Report ========================================
+    function hideColumn(){
+        $('.hideCol').hide();
+    }
+    function showColumn(){
+        $('.hideCol').show();
+    }
+    function printReport(){
+        let cssUrl1 = 'https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css';
+        let cssUrl2 = '{{url_for('static', filename='assets/css/main.css')}}';
+        $('.printInvDetails').printThis({
+            importCSS: true,
+            importStyle: true,
+            canvas: true,
+            beforePrint: hideColumn,
+            afterPrint: showColumn,
+            loadCSS: [cssUrl1, cssUrl2]
+        });
+    }
+</script>
+
+<script>
+    function seekVideo(seekTime) {
+        // Add event listener for loadedmetadata to enable seeking
+        document.getElementById('queryVideo').addEventListener('loadedmetadata', function() {
+            // Convert seek time to seconds
+            const seekSeconds = timeToSeconds(seekTime);
+
+            // Access the duration of the video
+            const duration = this.duration;
+
+            // Check if seek time is valid
+            if (!isNaN(seekSeconds) && seekSeconds >= 0 && seekSeconds <= duration) {
+                this.currentTime = seekSeconds;
+            } else {
+                console.log('Invalid seek time!');
+            }
+        });
+    }
+
+    function clickedQueriedItems(dis) {
+        const selectedVideoSrc = document.getElementById("videoSource");
+        const selectedVideo = document.getElementById("queryVideo");
+
+        const vidSrc = dis.dataset.vsrc;
+        const vidThumb = dis.dataset.vthumb;
+        const vidFrameTime = dis.dataset.vtime;
+
+        selectedVideoSrc.setAttribute("src", vidSrc);
+        selectedVideo.setAttribute("src", vidSrc);
+
+        // Assuming seekVideo function is defined elsewhere
+        seekVideo(vidFrameTime); // Pass the video frame time to the seekVideo function
+    }
+
+    // Configure needed variables
+    const queryResultData = JSON.parse('{{ resp | tojson | safe }}');  // Full recognition jobs data
+    const redirectedJobId = '{{job_id}}' // Default job_id from redirect report url
+    const BASE_URL = 'http://127.0.0.1:5000/'
+
+    // Select Query ========================================
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get the select field element// Initialize DataTable with empty data and with options
+        const dataTable = $('#queryResultsTable').DataTable({
+            // Enable responsive design
+            responsive: true,
+            // Add custom styling classes
+            "columnDefs": [
+                { "className": "dt-center", "targets": "_all" } // Center align all columns
+            ],
+            // Add buttons for exporting data
+            dom: 'Bfrtip',
+            buttons: [
+                'csv', 'excel', 'pdf'
+            ]
+        });
+
+        // Get the select field element
+        const selectField = document.getElementById("querySelect");
+        // Remove any existing change event listeners (optional)
+        selectField.removeEventListener("change", function() {});
+
+        // Trigger the change event programmatically (modern browsers)
+        if (!selectField.disabled && redirectedJobId != "") {
+            selectField.value = redirectedJobId; // Set the value of the option to select
+            if (typeof selectField.dispatchEvent !== 'undefined') {
+                const triggerEvent = new Event('change');
+                setTimeout(function() {
+                    selectField.dispatchEvent(triggerEvent);
+                }, 10);
+            } else {
+                selectField.fireEvent('onchange'); // For older browsers (not recommended)
+            }
+        }
+
+        // Add event listener for change event
+        selectField.addEventListener("change", function() {
+            // Get the selected value
+            const selectedValue = selectField.value;
+
+            // Retrieve the corresponding image URL from JSON data and update the image displayed
+            const selectedEntry = queryResultData.find(entry => entry.job_id === selectedValue);
+
+            // Get the corresponding data from the selected entry
+            const queryImageURL = selectedEntry ? selectedEntry.test_image_path : '';
+            const queryJobType = selectedEntry ? selectedEntry.job_type : '';
+            const queryJobQueueId = selectedEntry ? selectedEntry.job_queue_id : '';
+            const queryJobId = selectedEntry ? selectedEntry.job_id : '';
+            const queryJobMode = selectedEntry ? selectedEntry.job_mode : '';
+            const queryJobThreshold = selectedEntry ? selectedEntry.job_threshold : '';
+            const queryJobMaxGoodMatches = selectedEntry ? selectedEntry.job_max_good_matches : 'N/A';
+            const queryJobMaxSampleSize = selectedEntry ? selectedEntry.job_max_sample_size : 'N/A';
+            const queryJobSamplesMatched = selectedEntry ? selectedEntry.job_samples_matched : 'N/A';
+            const queryJobStartDate = selectedEntry ? selectedEntry.job_start_date : '';
+            const queryJobEndDate = selectedEntry ? selectedEntry.job_end_date : '';
+            const queryJobStartTime = selectedEntry ? selectedEntry.job_start_time : '';
+            const queryJobEndTime = selectedEntry ? selectedEntry.job_end_time : '';
+            const queryJobCreated = selectedEntry ? selectedEntry.created : '';
+            const queryJobCompleted = selectedEntry ? selectedEntry.completed : '';
+
+            const jobDetailsHTML =
+                `<div class="col-12 col-md-4 col-sm-12 px-4">
+                    <h6 class="job__main__list"><span>Job ID:</span> ${ queryJobId }</h6>
+                    <h6 class="job__main__list"><span>Job Queue ID:</span> ${ queryJobQueueId }</h6>
+                    <h6 class="job__main__list"><span>Job Type:</span> ${ queryJobType }</h6>
+                    <h6 class="job__main__list"><span>Job Mode:</span> ${ queryJobMode }</h6>
+                </div>
+                <div class="col-12 col-md-4 col-sm-12 px-4">
+                    <h6 class="job__main__list"><span>Samples Matched:</span> ${ queryJobSamplesMatched }</h6>
+                    <h6 class="job__main__list"><span>Threshold:</span> ${ queryJobThreshold }</h6>
+                    <h6 class="job__main__list"><span>Max Good Matches:</span> ${ queryJobMaxGoodMatches }</h6>
+                    <h6 class="job__main__list"><span>Max Sample Size:</span> ${ queryJobMaxSampleSize }</h6>
+                </div>
+                <div class="col-12 col-md-4 col-sm-12 px-4">
+                    <h6 class="job__main__list"><span><i class="bi bi-calendar mr-1"></i> Date Range:</span> ${ queryJobStartDate } - ${ queryJobEndDate }</h6>
+                    <h6 class="job__main__list"><span><i class="bi bi-clock mr-1"></i> Time Range:</span> ${ queryJobStartTime } - ${ queryJobEndTime }</h6>
+                    <h6 class="job__main__list"><span><i class="bi bi-calendar mr-1"></i> Created:</span> ${ queryJobCreated } </h6>
+                    <h6 class="job__main__list"><span><i class="bi bi-calendar mr-1"></i> Completed :</span> ${ queryJobCompleted }</h6>
+                </div>`;
+
+            // Update the job details section
+            document.getElementById('jobDetails').innerHTML = jobDetailsHTML;
+
+            // Fetch image and update the image displayed
+            fetch(`${BASE_URL+queryImageURL}`)
+                .then(response => {
+                    if (!response.ok) { throw new Error('Network response was not ok'); }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const selectedImage = document.getElementById("selectedQueryImage");
+                    selectedImage.src = URL.createObjectURL(blob);
+                })
+                .catch(error => console.log('Error fetching image URL:', error));
+
+            // Fetch jobs based on the job_type
+            async function fetchSpecificJobsData(value) {
+                try {
+                    const response = await fetch(`${BASE_URL}jobs_grouped_by_id/${queryJobType}/${value}`);
+                    const data = await response.json();
+                    drawJobsTable(data);
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+            fetchSpecificJobsData(selectedValue); // call function to retrieve jobs by job_type
+
+            // Draw the table
+            function drawJobsTable(recognitionJobs) {
+                dataTable.clear(); // Clear existing data
+                // Add new data
+                let queryFrameTime = '';
+                if (recognitionJobs) {
+                    for (const item of recognitionJobs) {
+                        const videoFile = item.rec_video_file;
+
+                        let imageUrl = "";
+                        const frameImg = item.rec_frame_image;
+
+                        if (frameImg.startsWith("app/")) {
+                             imageUrl = (frameImg) ? BASE_URL+frameImg.replace(/^app\//, "") : "";
+                        } else {
+                            const fmtFrameImg = (frameImg.split("\\")).join('/')
+                            if (fmtFrameImg.startsWith("app/")) {
+                                imageUrl = BASE_URL+fmtFrameImg.replace("app/", "");
+                            }
+                        }
+
+                        // Fetch video url
+                        const newVidUrl = item.rec_video_dir + encodeURIComponent(videoFile);
+                        const queryFrameTime = item.rec_frame_time;
+
+                        // Get frame thumbnail
+                        const imageHtml = `<button onClick="clickedQueriedItems(this)" data-vsrc="${newVidUrl}"
+                                                data-vthumb="${imageUrl}" data-vtime="${queryFrameTime}"
+                                                class="displaySeekQueryVideo">
+                                                <img src="${imageUrl}" alt="Image" height="100">
+                                            <button>`;
+
+                        // Add new row to table
+                        dataTable.row.add([imageHtml, item.channel_name, item.rec_confidence, item.rec_frame_time,
+                        item.rec_video_length, item.rec_video_date,  item.rec_video_file]);
+                    }
+                }
+                // Redraw DataTable
+                dataTable.draw();
+            }
+
+        });
+    });
+</script>
+
+
+{% include 'layout/footer.html' %}
