@@ -19,7 +19,7 @@ This Ad Detection System is designed to automatically detect specific advertisem
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.9 or higher but to be more precise use python 3.11 for the sake of dlib version used in this app.
 - OpenCV with contrib modules
 - NumPy
 - Requests
