@@ -21,14 +21,12 @@ def create_app(config_mode):
 
     with app.app_context():
         # import blueprints
-        from app.api.facial_recognition.urls import fr_bp
         from app.api.ads_recognition.urls import ar_bp
         from app.api.recognition_jobs.urls import rj_bp
         from app.routes import routes_bp
         from app.api.channels.urls import channels_bp
 
         # Register blueprints
-        app.register_blueprint(fr_bp)  # facial recognition jobs
         app.register_blueprint(ar_bp)  # ads recognition jobs
         app.register_blueprint(rj_bp)  # recognition jobs
         app.register_blueprint(routes_bp)
