@@ -208,8 +208,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- **Project Maintainer:** [Your Name](mailto:your.email@example.com)
-- **Project Link:** [https://github.com/yourusername/ad-detection-system](https://github.com/yourusername/ad-detection-system)
+- **Project Maintainer:** [Jonah Etuaful](mailto:etuafuljonah@yahoo.com)
+- **Project Link:** [https://github.com/Jonah2016/ad_eye](https://github.com/Jonah2016/ad_eye)
 
 ## Acknowledgments
 
